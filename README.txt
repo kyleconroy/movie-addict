@@ -12,5 +12,6 @@ How to install.
 		  `userid` varchar(11) default NULL,
 		  `percent` varchar(6) NOT NULL default '0',
 		  ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
-3. Setup the cron job to run everyday.
+3. Fill out the config.php with all the required info
+4. Setup the cron job to run everyday.
 
