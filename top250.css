@@ -1,0 +1,63 @@
+.settings {
+	background: #f7f7f7;
+	border: 1px solid #cccccc;
+	padding: 10px; 
+}
+
+.settings td {
+	padding: 0 10px 0 10px;
+}
+
+.logo {
+	text-align: center;
+	font-size: 18px;
+	font-weight: bold;
+	border-right: 1px solid #cccccc;
+}
+
+.update {
+	text-align: center;
+	padding: 0 0 0 20px;
+	margin-left: 20px;
+	border-left: 1px solid #cccccc;
+}
+
+.fbml_add_profile_button {
+	float: right;
+	width: 118px;
+}
+
+.fbml_add_profile_button td {
+	padding: 0px;
+}
+
+.addmsg {
+	background:#FFEBE8;
+	border:1px solid #DD3C10;
+	margin:10px 0 10px;
+	padding:10px;
+	font-size: 16px;
+	font-weight: bold;
+	color: #333333;
+}
+
+.friends {
+	width: 100%;
+}
+
+.friends .img{
+	width: 10%;
+}
+
+.friends .percent{
+	width: 10%;
+}
+
+.friends .name{
+	width: 30%;
+}
+
+.friends .list{
+	width: 50%;
+	text-align: right;
+}
