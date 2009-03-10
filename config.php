@@ -1,30 +1,31 @@
 <?php 
 
 /* API Public Key */
-$appapikey = '';
+$appapikey = '41101cef5b75418229b65ef6de55197f';
  
 /* API Secret Key */
-$appsecret = '';
+$appsecret = 'f05f253cb0204b113b67dfe7dd899aec';
 
 /* Application Callback URL */
-$appcallbackurl = '';
+$appcallbackurl = 'http://dev.kyleconroy.com/imdb250/';
  
 /* Database Name */
-$db = '';
+$db = 'brokenva_imdb250';
 
 /* Database User */
-$dbuser = '';
+$dbuser = 'brokenva_imdb';
 
 /* Database Password */
-$dbpass = '';
+$dbpass = 'hung3rm4n!';
+
 
 /* App Name */
-$appname = '';
+$appname = "Movies Addict";
 
 /* App Url */
-$appurl = ''; 
+$appurl = "imdbtopfilms/"; 
 
 /* CSS URL */
-$cssurl = '';
+$cssurl = 'http://dev.kyleconroy.com/imdb250/top250.css';
 
 ?>

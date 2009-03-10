@@ -3,10 +3,10 @@
 require_once('config.php');
 
 /** Update Everything **/
-$top = top250();
-updateTop250($top, $dbuser, $dbpassword, $db);
-updateUsers($top, $dbuser, $dbpassword, $db);
 
+$top = top250();
+updateTop250($top, $dbuser, $dbpass, $db);
+updateUsers($top, $dbuser, $dbpass, $db);
 
 function top250()
 {
@@ -25,8 +25,8 @@ function top250()
 }
 
 /** Update the top 250 table **/
-function updateTop250($top250, $dbuser, $dbpassword, $db) {
-	$con = mysql_connect("localhost",$dbuser,$dbpassword);
+function updateTop250($top250, $dbuser, $dbpass, $db) {
+	$con = mysql_connect("localhost",$dbuser,$dbpass);
 	if (!$con) {
 	  die('Could not connect: ' . mysql_error());
 	}
@@ -48,8 +48,8 @@ function updateTop250($top250, $dbuser, $dbpassword, $db) {
 }
 
 /** Add any movies that weren't previously on the list to the user table **/
-function updateUsers($top250, $dbuser, $dbpassword, $db) {
-	$con = mysql_connect("localhost",$dbuser,$dbpassword);
+function updateUsers($top250, $dbuser, $dbpass, $db) {
+	$con = mysql_connect("localhost",$dbuser,$dbpass);
 	if (!$con) {
 	  die('Could not connect: ' . mysql_error());
 	}
@@ -74,5 +74,60 @@ function updateUsers($top250, $dbuser, $dbpassword, $db) {
 	 	}
 	}
 	mysql_close(); 
+}
+
+/* An associative array of the Top 250 Films */
+function top250array() {
+	
+	require('config.php');
+	
+	$con = mysql_connect("localhost",$dbuser,$dbpass);
+	if (!$con) {
+	  die('Could not connect: ' . mysql_error());
+	}
+	$db_selected = mysql_select_db($db, $con);
+	if (!$db_selected) {
+	    die ('Can\'t use ' . mysql_error());
+	}
+	$result = mysql_query("SELECT * FROM top250");
+	if(!$result) {
+	   		die ('Can\'t get top movies ' . mysql_error());
+	}
+	
+	$films = array();
+	while ($row = mysql_fetch_array($result)){
+		$films[$row[0]] = array("title"=>$row[1], "count"=>0);
+	}
+	return $films;
+}
+
+function filmCount() {
+
+	require('config.php');
+	
+	$con = mysql_connect("localhost",$dbuser,$dbpass);
+	if (!$con) {
+	  die('Could not connect: ' . mysql_error());
+	}
+	$db_selected = mysql_select_db($db, $con);
+	if (!$db_selected) {
+	    die ('Can\'t use ' . mysql_error());
+	}
+	$result = mysql_query("SELECT * FROM users");
+	if(!$result) {
+	   		die ('Can\'t get top movies ' . mysql_error());
+	}
+	
+	$films = top250array();
+	
+	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)){
+		unset($row['userid']);
+		unset($row['percent']);
+		foreach($row as $key=>$value){
+			$films[$key]["count"] = $films[$key]["count"] + $value;
+		}
+	}
+	mysql_close();
+	return $films;
 }
 
