@@ -6,7 +6,7 @@ require_once('config.php');
 
 $top = top250();
 updateTop250($top, $dbuser, $dbpass, $db);
-updateUsers($top, $dbuser, $dbpass, $db);
+//updateUsers($top, $dbuser, $dbpass, $db);
 
 function top250()
 {
@@ -34,15 +34,15 @@ function updateTop250($top250, $dbuser, $dbpass, $db) {
 	if (!$db_selected) {
 	    die ('Can\'t use ' . mysql_error());
 	}
-	if(!mysql_query("TRUNCATE TABLE top250")) {
-	    die ('Can\'t truncate table ' . mysql_error());
-	}
+	$counter = 1;
 	foreach ($top250 as $str) {
 		$imdbid = substr($str, 9, 7);
 		$title = substr($str, 19);
-		if(!mysql_query("INSERT INTO top250 VALUES (\"$imdbid\", \"$title\")")) {
-	   		die ('Can\'t insert into table ' . mysql_error());
+		if(!mysql_query("UPDATE top250 SET imdb = $counter WHERE imdbid = \"$imdbid\"")) {
+	   		if (!mysql_query("INSERT INTO top250 (imdbid, title, imdb) VALUES (\"$imdbid\", \"$title\", '$counter')"))
+	   			die ('Can\'t insert into table ' . mysql_error());
 	 	}
+		$counter++;
 	}
 	mysql_close();
 }

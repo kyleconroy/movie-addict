@@ -32,7 +32,7 @@
 }
 
 .addmsg {
-	background:#FFEBE8;
+	background:#ffebe8;
 	border:1px solid #DD3C10;
 	margin:10px 0 10px;
 	padding:10px;
@@ -45,8 +45,13 @@
 	width: 100%;
 }
 
+.friends .check {
+	text-align: center;
+}
+
 .friends .img{
 	width: 10%;
+	text-align: center;
 }
 
 .friends .percent{
@@ -62,7 +67,55 @@
 	text-align: right;
 }
 
-.movies {
+
+
+.table {
 	width: 100%;
+	margin-top: 10px;
+	background: #CCCCCC;
 }
 
+.table thead tr th {
+	background: #6D84b4;
+	border: 1px #666 solid;
+	padding: 4px;
+	color: #fff;
+}
+
+.table tbody tr.even {
+	background: #F7F7F7;
+}
+
+.table tbody tr.odd {
+	background: #FFF;
+}
+
+.table tbody tr.yes {
+	background: #ccffcc;
+}
+
+.table tbody tr.no {
+	background: #ffcccc;
+}
+
+.table tbody tr {
+	border-color: inherit;
+}
+
+.table tbody tr td {
+	padding: 4px;
+}
+
+.count, .seenit {
+	text-align: center;
+}
+
+.submit {
+	margin: 10px;
+}
+
+.compare {
+	display: block;
+	float: right;
+	background: #6D84b4;
+}

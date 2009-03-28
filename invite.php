@@ -2,6 +2,7 @@
 
 // Get these from http://developers.facebook.com 
 require('config.php');
+require('libfunction.php');
 
 // Names and images 
 $app_image = "Application image URL"; 
@@ -13,16 +14,20 @@ $facebook = new Facebook($appapikey, $appsecret );
 $facebook->require_frame(); 
 $user = $facebook->require_login(); 
 
-echo '<fb:tabs>  
-	  <fb:tab-item align="right" href="http://apps.facebook.com/'.$appurl.'" title="My List" />  	
-	  <fb:tab-item align="right" href="http://apps.facebook.com/'.$appurl.'friends.php" title="My Friends\' Results" />
-	  <fb:tab-item align="right" href="http://apps.facebook.com/'.$appurl.'invite.php" title="Invite People" selected="true"/>
-	  </fb:tabs>';
+//Create the pageData object
+$pageData = (object)(array()); 
 
-if(isset($_POST["ids"])) { 
-	echo "<center>Thank you for inviting ".sizeof($_POST["ids"])." of your friends on <b><a href=\"http://apps.facebook.com/".$appurl."/\">".$appname."</a></b>.<br><br>\n"; 
-	echo "<h2><a href=\"http://apps.facebook.com/".$appurl."/\">Click here to return to ".$appname."</a>.</h2></center>"; 
-} else { 
+// Save Information
+$pageData->css = $cssurl;
+$pageData->tabs = tabs(4, $appurl);
+$pageData->userid = $user;
+$pageData->percent = $percent;
+$pageData->films = $imdbfilms;
+$pageData->sentmsg = isset($_POST["ids"]);
+$pageData->fcount = sizeof($_POST["ids"]);
+
+
+if(!isset($_POST["ids"])) { 
 	// Retrieve array of friends who've already added the app. 
 	$fql = 'SELECT uid FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1='.$user.') AND is_app_user = 1'; 
 	$_friends = $facebook->api_client->fql_query($fql); 
@@ -43,20 +48,39 @@ if(isset($_POST["ids"])) {
 			"<fb:name uid=\"".$user."\" firstnameonly=\"true\" shownetwork=\"false\"/> has started using <a href=\"http://apps.facebook.com/".$appurl."/\">".$appname."</a>. See how many of the IMDB Top 250 you have seen so you can brag about your high score.</u>!\n". 
 			"<fb:req-choice url=\"".$facebook->get_add_url()."\" label=\"Add ".$appname." to your profile\"/>"; 
 
-?> 
+}
 
-<fb:request-form 
-		action="<? echo $invite_href; ?>" 
-		method="post" 
-		type="<? echo $appname; ?>" 
-		content="<? echo htmlentities($content); ?>" 
-		image="<? echo $app_image; ?>"> 
-		
-		<fb:multi-friend-selector 
-			actiontext="Here are your friends who don't have <? echo $appname; ?> yet. Invite whoever you want" 
-			exclude_ids="<? echo $friends; ?>" /> 
-</fb:request-form> 
+// Template
+if($pageData->sentmsg) { ?>
+	<center>
+		Thank you for inviting <?php $pageData->fcount; ?> of your friends on 
+		<b><a href=\"http://apps.facebook.com/<?php $appurl; ?>/"><?php $appname; ?></a></b>
+		<br><br> 
+		<h2>
+			<a href=\"http://apps.facebook.com/<?php $appurl; ?>">Click here to return to <?php $appname; ?></a>
+		</h2>
+	</center> 
+	
+<?php } else { ?>
 
-<? } 
+	<link rel="stylesheet" type="text/css" media="screen" href="<?php echo $pageData->css; ?>?ver=2.4" />
+
+	<?php echo $pageData->tabs; ?>
+
+	<fb:request-form 
+			action="<? echo $invite_href; ?>" 
+			method="post" 
+			type="<? echo $appname; ?>" 
+			content="<? echo htmlentities($content); ?>" 
+			image="<? echo $app_image; ?>"> 
+			
+			<fb:multi-friend-selector 
+				actiontext="Here are your friends who don't have <? echo $appname; ?> yet. Invite whoever you want" 
+				exclude_ids="<? echo $friends; ?>" /> 
+	</fb:request-form> 
+
+<?php 
+
+} 
 
 ?>

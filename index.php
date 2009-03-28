@@ -20,7 +20,7 @@
 */
 
 require('config.php');
-require('functions.php');
+require('libfunction.php');
 
 // Use the Facebook platform libraries
 require_once 'facebook.php';
@@ -40,134 +40,96 @@ try {
 	$facebook->redirect($appcallbackurl);
 }
 
+/*
+// This page will go into a completley different page, called view
 //If a user is defined in the url, see if that user added the app
 $submit = true;
 if($facebook->api_client->users_isAppUser($_GET['user']) && isset($_GET['user'])) {
 	$user = $_GET['user'];
 	$submit = false;
 }
+*/
 
 
-//Retrieve data from MySQL
-$filmValues = filmValues($user);
-$percent = percentage($filmValues);
+//Retrieve data from MySQL, first connecting to the databse
+$con = mysql_connect("localhost",$dbuser,$dbpass);
+if (!$con) {
+  die('Could not connect: ' . mysql_error());
+}
+$db_selected = mysql_select_db($db, $con);
+if (!$db_selected) {
+    die ('Can\'t use ' . mysql_error());
+}
+
+$list = $_GET['list'];
+if($list == 'afi') {
+	$list = 'afi';
+	$tabvalue = 1;
+	$total = '100';
+} 
+else {
+	$list = 'imdb';
+	$total = '250';
+}
+$userfilms = userfilms($db, $con, $user, $list);
+$percent = userdata($db, $con, $user);
+$percent = $percent["percent"];
 
 //Determine what message to show
 $msg = $_GET['msg'];
-
-//Generate the FBML for the profile
-$fbml = generateFbml($percent, $user);
-$facebook->api_client->call_method('facebook.profile.setFBML', array('uid' => $user, 'profile' => $fbml, 'profile_main' => $fbml));
-
-//Print the page
-printPage($filmValues, $percent, $user, $msg, $submit, $appurl, $cssurl);
-
-
-// Functions 
-
-function printPage($filmValues, $percent, $user, $msg, $submit, $appurl, $cssurl) {
-	echo '    
-	<link rel="stylesheet" type="text/css" media="screen" href="'.$cssurl.'?ver=2.4" />
-	<SCRIPT type="text/javascript" src="http://ws.amazon.com/widgets/q?ServiceVersion=20070822&MarketPlace=US&ID=V20070822/US/	additofilm-20/8005/8a0479c0-7551-45e2-9593-7837a9e0b5f3"> </SCRIPT>';
-
-	// Print Tabs
-	if($submit)
-		$selected = 'selected="true"';
-	echo '<fb:tabs>  
-		  <fb:tab-item align="right" href="http://apps.facebook.com/'.$appurl.'" title="My List" '.$selected.' />  	
-		  <fb:tab-item align="right" href="http://apps.facebook.com/'.$appurl.'friends.php" title="My Friends\' Results" />
-		  <fb:tab-item align="right" href="http://apps.facebook.com/'.$appurl.'invite.php" title="Invite People" />
-		  </fb:tabs>';
-		  
-	//Print Title for User Page	   
-	echo "<h1 class=\"settings\"> <fb:name uid=\"$user\" useyou=\"false\" capitalize=\"true\" /> is $percent% addicted to film </h1>";
-	
-	//Print Message 
-	switch($msg) {
+switch($msg) {
 	case 1:
-		echo '<h1 class="status">Your movie list has been updated</h1>';
+		$msg = '<h1 class="status">Your movie list has been updated</h1>';
 		break;
 	case 2:
-		echo '<h1 class="status">Welcome to Movie Addict! Check off the movies you have seen, and then press the update button</h1>';
+		$msg = '<h1 class="status">Welcome to Movie Addict! Check off the movies you have seen, and then press the update button</h1>';
 		break;
 	default:
 		break;
-		}
+}
 
-	// Print Movie List
-	echo '<fb:if-section-not-added section="profile"> 
-			<div class="addmsg"><fb:add-section-button section="profile" />Your profile currently lacks a certain something</div>
-		  </fb:if-section-not-added>';
-	echo '<form action="updateUser.php" method="POST">';
-	echo '<table cellpadding="0" cellspacing="0" class="movies">';
-	$count = 1;
-	foreach ($filmValues as $film) {
-		if($film[2] == 1)
-			$checked = 'checked="checked"';
-		else 
-			$checked = "";
-		if($count % 2 == 0)
-			$row = "even";
-		else
-			$row = "odd";
-		echo '<tr class='. $row . '><td ><input type="checkbox" ' . $checked .' name="film[' . $film[0] .']"></td><td>';
-		printLink($film[1], $film[0]);
-		echo '</td></tr>';
+//Generate the FBML for the profile
+$fbml = generateFbml($percent, $user, $appurl);
+$facebook->api_client->call_method('facebook.profile.setFBML', array('uid' => $user, 'profile' => $fbml, 'profile_main' => $fbml));
+
+// Update the userfilms
+$count = 0;
+foreach($userfilms as &$film) {
+	if($film['seenit'] == 1) {
+		$film["checked"] =  'checked="checked"';
 		$count += 1;
 	}
-	echo '</table>';
-	echo '<input type="hidden" name="userid" value="'. $user.'"  />';
-	if($submit)
-		echo '<input type="submit" value="Update Movies" />';
-	echo '</form>';
-	
+	$film["link"] = movielink($film["title"], $film["id"]);
 }
+unset($film);
 
-function percentage($filmValues){
-	$counter = 0;
-	foreach ($filmValues as $film) {
-		if($film[2] == 1) {
-			$counter += 1;
-			}
-	}
-	if($counter == 0)
-		return $counter;
-	else 
-		return $counter / 250 * 100;
-	
-}
+//Create the pageData object
+$pageData = (object)(array()); 
 
-function generateFbml($percent, $user){
-	$fbml = '<div><h1 style="text-align: center; font-size: 32px;">'.$percent.'%<h3 style="text-align: center;">addicited to film</h3><a href="http://apps.facebook.com/'.$appurl.'?user='.$user.'" style="text-align: center; display: block; margin: 5px;">See <fb:name uid="'.$user.'" useyou=false capitalize="true" possessive="true" /> list</a>
+// Save Information
+$pageData->css = $cssurl;
+$pageData->tabs = tabs($tabvalue, $appurl);
+$pageData->msg = $msg;
+$pageData->userid = $user;
+$pageData->percent = $percent;
+$pageData->films = $userfilms;
+$pageData->movielist = $list;
+$pageData->moviecount = $count;
+$pageData->totalcount = $total;
+
+// Display the Page
+ob_start(); 
+require("layout_index.php"); 
+ob_end_flush();
+
+
+// Generate the page fbml
+function generateFbml($percent, $user, $appurl){
+	$fbml = '<div><h1 style="text-align: center; font-size: 32px;">'.$percent.'%<h3 style="text-align: center;">addicited to film</h3><a href="http://apps.facebook.com/'.$appurl.'view.php?user='.$user.'" style="text-align: center; display: block; margin: 5px;">See <fb:name uid="'.$user.'" useyou=false capitalize="true" possessive="true" /> list</a>
 	<a href="http://apps.facebook.com/'.$appurl.'" style="text-align: center; display: block; margin: 5px;">How addicted are you?</a>';
 	return $fbml;
 }
 
-/** Return an array of the current top 250 films, and a BOOlEAN value if they have seen the movie **/
-function filmValues($userid) {
-	
-	require('config.php');
-	
-	$con = mysql_connect("localhost",$dbuser,$dbpass);
-	if (!$con) {
-	  die('Could not connect: ' . mysql_error());
-	}
-	$db_selected = mysql_select_db($db, $con);
-	if (!$db_selected) {
-	    die ('Can\'t use ' . mysql_error());
-	}
-	$result = mysql_query("SELECT * FROM top250");
-	if(!$result) {
-	   		die ('Can\'t get top movies ' . mysql_error());
-	}
-	
-	$films = array();
-	$userValues = userValues($db, $con, $userid);
-	while ($row = mysql_fetch_array($result)){
-		$films[] = array($row[0], $row[1], $userValues[$row[0]]);
-	}
-	mysql_close();
-	return $films;
-}
+mysql_close();
 
 ?>

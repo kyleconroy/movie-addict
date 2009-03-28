@@ -20,7 +20,7 @@
 */
 
 require('config.php');
-require('functions.php');
+require('libfunction.php');
 
 // Use the Facebook platform libraries
 require_once 'facebook.php';
@@ -40,60 +40,94 @@ try {
 	$facebook->redirect($appcallbackurl);
 }
 
-
-
+/*
+// This page will go into a completley different page, called view
 //If a user is defined in the url, see if that user added the app
 $submit = true;
 if($facebook->api_client->users_isAppUser($_GET['user']) && isset($_GET['user'])) {
 	$user = $_GET['user'];
 	$submit = false;
 }
+*/
 
-echo '<link rel="stylesheet" type="text/css" media="screen" href="'.$cssurl.'?ver=2.4" />';
+// Error Handling
+$users = $_GET['user'];
+if(count($users) < 2)
+	die("Too few arguments");
 
-// Print the
-printTabs(-1, false, $appurl);
-if (preg_match('/\d+/', $_GET['friend'])) {
-	$friend = $_GET['friend'];
-	echo "<h1 class=\"settings\"> Movies both You and  <fb:name uid=\"$friend\" useyou=\"false\" capitalize=\"true\" /> haven't seen </h1>";
-	echo '<table>';
-	printList($user, $friend);
-} else
-	echo 'Invalid friend ID';
-echo '</table>';
-	  
+$str = "";
+foreach($users as $key => $value);
+	$str .= "$key,";
 
+try {
+	$facebook->api_client->users_getInfo($str, "name");
+} catch (Exception $ex) {
+	die("invalid user id");
+}
 
-/** Return an array of the current top 250 films, and a BOOlEAN value if they have seen the movie **/
-function printList($userid1, $userid2) {
+//Retrieve data from MySQL, first connecting to the databse
+$con = mysql_connect("localhost",$dbuser,$dbpass);
+if (!$con) {
+  die('Could not connect: ' . mysql_error());
+}
+$db_selected = mysql_select_db($db, $con);
+if (!$db_selected) {
+    die ('Can\'t use ' . mysql_error());
+}
 	
-	require('config.php');
+//$users = array('3432235','639076927','30509961');
+$allfilms = films($db, $con, NULL);
+
+$usersdata = array();
+foreach($users as $key => $value) {
+		$userdata[] = userdata($db, $con, $key);
+}
+
+$seen = moviestatus($userdata, $allfilms);
+
+// Update the userfilms
+$unseen = array();
+foreach($allfilms as &$film) {
+	if(!$seen[$film["id"]]) {
+		$film["link"] = movielink($film["title"], $film["id"]);
+		$unseen[] =  $film;
+	}
+}
+unset($film);
 	
-	$con = mysql_connect("localhost",$dbuser,$dbpass);
-	if (!$con) {
-	  die('Could not connect: ' . mysql_error());
+//Create the pageData object
+$pageData = (object)(array());
+
+
+// Save Information
+$pageData->css = $cssurl;
+$pageData->tabs = tabs(2, $appurl);
+$pageData->users = $users;
+$pageData->films = $unseen;
+
+// Display the Page
+ob_start(); 
+require("layout_common.php"); 
+ob_end_flush();
+
+
+mysql_close();
+
+/** OR the values of the given arrays **/
+function moviestatus($users, $movies) {
+	$result = array();
+	foreach($movies as $value){
+		$result[$value["id"]] = orarray($value["id"], $users);
 	}
-	$db_selected = mysql_select_db($db, $con);
-	if (!$db_selected) {
-	    die ('Can\'t use ' . mysql_error());
+	return $result;
+}
+
+function orarray($index, $arrays) {
+	$bool = FALSE;
+	foreach($arrays as $array){
+		$bool = $bool || $array[$index] > 0;
 	}
-	$result = mysql_query("SELECT * FROM top250");
-	if(!$result) {
-	   		die ('Can\'t get top movies ' . mysql_error());
-	}
-	
-	$films = array();
-	$userValues1 = userValues($db, $con, $userid1);
-	$userValues2 = userValues($db, $con, $userid2);
-	while ($row = mysql_fetch_array($result)){
-		if($userValues1[$row[0]] + $userValues2[$row[0]] == 0) {
-			echo '<tr><td>';
-			printLink($row[1]);
-			echo '</td></tr>';
-		};
-	}
-	mysql_close();
-	return $films;
+	return $bool;
 }
 
 ?>
