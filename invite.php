@@ -1,14 +1,14 @@
 <? 
 
 // Get these from http://developers.facebook.com 
-require('config.php');
-require('libfunction.php');
+require_once('config.php');
+require_once 'templates/layout_tabs.php';
 
 // Names and images 
 $app_image = "Application image URL"; 
 $invite_href = "invite.php"; // Rename this as needed 
 
-require_once 'facebook.php'; 
+require_once 'facebook.php';
 
 $facebook = new Facebook($appapikey, $appsecret ); 
 $facebook->require_frame(); 
@@ -19,10 +19,9 @@ $pageData = (object)(array());
 
 // Save Information
 $pageData->css = $cssurl;
-$pageData->tabs = tabs(4, $appurl);
+$pageData->tabs = 4;
 $pageData->userid = $user;
 $pageData->percent = $percent;
-$pageData->films = $imdbfilms;
 $pageData->sentmsg = isset($_POST["ids"]);
 $pageData->fcount = sizeof($_POST["ids"]);
 
@@ -65,7 +64,7 @@ if($pageData->sentmsg) { ?>
 
 	<link rel="stylesheet" type="text/css" media="screen" href="<?php echo $pageData->css; ?>?ver=2.4" />
 
-	<?php echo $pageData->tabs; ?>
+	<?php echo tabs($pageData->tabs); ?>
 
 	<fb:request-form 
 			action="<? echo $invite_href; ?>" 

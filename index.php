@@ -18,16 +18,19 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-require('config.php');
-require('libfunction.php');
-
-// Use the Facebook platform libraries
+require_once 'netflix.php';
+require_once 'config.php';
+require_once 'addict_database.php';
 require_once 'facebook.php';
 
-// Create the Facebook application
 $facebook = new Facebook($appapikey, $appsecret);
 $user = $facebook->require_login();
+$KEY =  "jrd2pte858kkj8pg3v3ukw8t";
+$SECRET = "XkWQEMsHEJ";
+
+$url = "http://api.netflix.com/catalog/titles/";
+$nf = new Netflix($KEY, $SECRET);
+$ad = new AddictDatabase();
 
 // Catch the exception that gets thrown if the cookie has an invalid session_key in it
 try {
@@ -50,30 +53,25 @@ if($facebook->api_client->users_isAppUser($_GET['user']) && isset($_GET['user'])
 }
 */
 
-
-//Retrieve data from MySQL, first connecting to the databse
-$con = mysql_connect("localhost",$dbuser,$dbpass);
-if (!$con) {
-  die('Could not connect: ' . mysql_error());
-}
-$db_selected = mysql_select_db($db, $con);
-if (!$db_selected) {
-    die ('Can\'t use ' . mysql_error());
-}
-
 $list = $_GET['list'];
 if($list == 'afi') {
 	$list = 'afi';
 	$tabvalue = 1;
 	$total = '100';
+	$list_movies = $ad->getAFIMovies();
 } 
 else {
 	$list = 'imdb';
 	$total = '250';
+	$list_movies = $ad->getIMDBMovies();
 }
-$userfilms = userfilms($db, $con, $user, $list);
-$percent = userdata($db, $con, $user);
-$percent = $percent["percent"];
+
+
+$user_info = $ad->getUser($user);
+$user_movies = $ad->getUserMovies($user);
+$user_count = $user_info['count'];
+$percent = $user_info['percent'];
+$total_count = 274;
 
 //Determine what message to show
 $msg = $_GET['msg'];
@@ -92,34 +90,25 @@ switch($msg) {
 $fbml = generateFbml($percent, $user, $appurl);
 $facebook->api_client->call_method('facebook.profile.setFBML', array('uid' => $user, 'profile' => $fbml, 'profile_main' => $fbml));
 
-// Update the userfilms
-$count = 0;
-foreach($userfilms as &$film) {
-	if($film['seenit'] == 1) {
-		$film["checked"] =  'checked="checked"';
-		$count += 1;
-	}
-	$film["link"] = movielink($film["title"], $film["id"]);
-}
-unset($film);
-
 //Create the pageData object
 $pageData = (object)(array()); 
 
 // Save Information
 $pageData->css = $cssurl;
-$pageData->tabs = tabs($tabvalue, $appurl);
+$pageData->tabs = $tabvalue;
+$pageData->appurl =  $appurl;
 $pageData->msg = $msg;
-$pageData->userid = $user;
+$pageData->userid = (int) $user;
 $pageData->percent = $percent;
-$pageData->films = $userfilms;
 $pageData->movielist = $list;
-$pageData->moviecount = $count;
-$pageData->totalcount = $total;
+$pageData->movies = $list_movies;
+$pageData->seen_movies = $user_movies;
+$pageData->moviecount = $user_count;
+$pageData->totalcount = $total_count;
 
 // Display the Page
 ob_start(); 
-require("layout_index.php"); 
+require_once("templates/layout_index.php"); 
 ob_end_flush();
 
 
@@ -129,7 +118,5 @@ function generateFbml($percent, $user, $appurl){
 	<a href="http://apps.facebook.com/'.$appurl.'" style="text-align: center; display: block; margin: 5px;">How addicted are you?</a>';
 	return $fbml;
 }
-
-mysql_close();
 
 ?>

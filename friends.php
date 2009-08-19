@@ -1,10 +1,8 @@
 <?php
 
 // Get the configuration variables
-require_once('config.php');
-require_once('libfunction.php');
-
-// Use the Facebook platform libraries
+require_once 'config.php';
+require_once 'addict_database.php';
 require_once 'facebook.php';
 
 // Create the Facebook application
@@ -22,28 +20,18 @@ if (is_array($_friends) && count($_friends)) {
 		$friends[] = $friend['uid']; 
 		}
 } 
+unset($_friends);
 
-$con = mysql_connect("localhost",$dbuser,$dbpass);
-
-if (!$con) {
-  die('Could not connect: ' . mysql_error());
-}
-
-$db_selected = mysql_select_db($db, $con);
-
-if (!$db_selected) {
-    die ('Can\'t use ' . mysql_error());
-}
+$ad = new AddictDatabase();
 
 $filmfriends = array();
 foreach($friends as $friend){
-	$result = mysql_query("SELECT percent FROM users WHERE userid = '$friend'") or
-		die ('Can\'t update value ' . mysql_error());;
-	$row = mysql_fetch_assoc($result);
-	if($row) {
-		$filmfriends[] = array("userid" => $friend, "percent" => $row["percent"]);
+	$user = $ad->getUser($friend);
+	if($user) {
+		$filmfriends[] = $user;
 	}	
 }
+unset($friends);
 
 //Create the pageData object
 $pageData = (object)(array()); 
@@ -51,13 +39,13 @@ $pageData = (object)(array());
 // Save Information
 $pageData->css = $cssurl;
 $pageData->appurl = $appurl;
-$pageData->tabs = tabs(2, $appurl);
+$pageData->tabs = 2;
 $pageData->userid = $user;
 $pageData->friends = $filmfriends;
 
 // Display the Page
 ob_start(); 
-require("layout_friends.php"); 
+require_once("templates/layout_friends.php"); 
 ob_end_flush();
 
 mysql_close();

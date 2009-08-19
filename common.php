@@ -19,8 +19,8 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-require('config.php');
-require('libfunction.php');
+require_once 'config.php';
+require_once 'addict_database.php';
 
 // Use the Facebook platform libraries
 require_once 'facebook.php';
@@ -51,7 +51,7 @@ if($facebook->api_client->users_isAppUser($_GET['user']) && isset($_GET['user'])
 */
 
 // Error Handling
-$users = $_GET['user'];
+$users = array_keys($_GET['user']);
 if(count($users) < 2)
 	die("Too few arguments");
 
@@ -65,35 +65,22 @@ try {
 	die("invalid user id");
 }
 
-//Retrieve data from MySQL, first connecting to the databse
-$con = mysql_connect("localhost",$dbuser,$dbpass);
-if (!$con) {
-  die('Could not connect: ' . mysql_error());
-}
-$db_selected = mysql_select_db($db, $con);
-if (!$db_selected) {
-    die ('Can\'t use ' . mysql_error());
-}
-	
-//$users = array('3432235','639076927','30509961');
-$allfilms = films($db, $con, NULL);
+$ad = new AddictDatabase();
 
-$usersdata = array();
-foreach($users as $key => $value) {
-		$userdata[] = userdata($db, $con, $key);
-}
-
-$seen = moviestatus($userdata, $allfilms);
 
 // Update the userfilms
-$unseen = array();
-foreach($allfilms as &$film) {
-	if(!$seen[$film["id"]]) {
-		$film["link"] = movielink($film["title"], $film["id"]);
-		$unseen[] =  $film;
-	}
+$movies = $ad->getRankedMovies();
+
+$unseenids = array();
+foreach($users as $user){
+	$unseenids = array_merge($ad->getUserMovies($user), $unseenids);
 }
-unset($film);
+$unseen = array();
+$unseenids = array_unique($unseenids);
+foreach($movies as $key => $value){
+	if(!in_array($key, $unseenids))
+		$unseen[] = $value;
+}
 	
 //Create the pageData object
 $pageData = (object)(array());
@@ -101,33 +88,13 @@ $pageData = (object)(array());
 
 // Save Information
 $pageData->css = $cssurl;
-$pageData->tabs = tabs(2, $appurl);
+$pageData->tabs = 2;
 $pageData->users = $users;
 $pageData->films = $unseen;
 
 // Display the Page
 ob_start(); 
-require("layout_common.php"); 
+require_once("templates/layout_common.php"); 
 ob_end_flush();
-
-
-mysql_close();
-
-/** OR the values of the given arrays **/
-function moviestatus($users, $movies) {
-	$result = array();
-	foreach($movies as $value){
-		$result[$value["id"]] = orarray($value["id"], $users);
-	}
-	return $result;
-}
-
-function orarray($index, $arrays) {
-	$bool = FALSE;
-	foreach($arrays as $array){
-		$bool = $bool || $array[$index] > 0;
-	}
-	return $bool;
-}
 
 ?>

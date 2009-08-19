@@ -1,7 +1,7 @@
 <?php
 
 // Get the configuration variables
-require_once('config.php');
+require_once 'config.php';
 
 // Use the Facebook platform libraries
 require_once 'facebook.php';
@@ -10,42 +10,26 @@ require_once 'facebook.php';
 $facebook = new Facebook($appapikey, $appsecret);
 $user = $facebook->require_login();
 
-$con = mysql_connect("localhost",$dbuser,$dbpass);
+// Connect to the database
+$ad = new AddictDatabase();
 
-if (!$con) {
-  die('Could not connect: ' . mysql_error());
-}
-
-$db_selected = mysql_select_db($db, $con);
-
-if (!$db_selected) {
-    die ('Can\'t use ' . mysql_error());
-}
-
-// Insert the user into the table
-$result = mysql_query("SELECT * FROM users WHERE userid = '$user'") or
-		die ('Can\'t select ' . mysql_error());
-$row = mysql_fetch_array($result);		
-		
-if(!$row) {
-	mysql_query("INSERT INTO users (userid,percent) VALUES('$user',0)") or
-		die ('Can\'t insert ' . mysql_error());
-}
+// Insert the user into the table only if he / she isn't already there
+if(!$ad->getUser($user))
+	$ad->addUser($user);
 
 // Check if any movies are from the user's profile are in the top 250 and update them
 $user_details = $facebook->api_client->users_getInfo($user, array('movies'));
 $user_movies = explode(', ', $user_details[0]['movies']);
 
-$result = mysql_query("SELECT * FROM top250") or
-		die ('Can\'t select ' . mysql_error());;
+$allmovies = $ad->getMovies();
 
-while($row = mysql_fetch_array($result)) {
-	if(in_array($row['title'], $user_movies)) {
-		$imdbid = $row['imdbid'];
-		mysql_query("UPDATE users SET `$imdbid` = 1 WHERE userid = '$user'") or
-			die ('Can\'t update value ' . mysql_error());
+foreach($allmovies as $movie)
+	if(in_array($movie['title'], $user_movies)) {
+		$ad->addUserMovie($user, $movie['movie_id']);
 	}
 }
+
+$ad->updateUserMovieCount($user);
 
 mysql_close(); 
 

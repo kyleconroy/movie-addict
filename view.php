@@ -19,26 +19,19 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-require('config.php');
-require('libfunction.php');
+require_once 'config.php';
+require_once 'addict_database.php';
 
-// Use the Facebook platform libraries
-require_once 'facebook.php';
-
-// Create the Facebook application
-$facebook = new Facebook($appapikey, $appsecret);
-$user = $facebook->require_login();
-
-// Catch the exception that gets thrown if the cookie has an invalid session_key in it
-try {
-	if (!$facebook->api_client->users_isAppUser()) {
-		$facebook->redirect($facebook->get_add_url());
-	}
-} catch (Exception $ex) {
-	// this will clear cookies for your application and redirect them to a login prompt
-	$facebook->set_user(null, null);
-	$facebook->redirect($appcallbackurl);
+$user = $_GET['user'];
+if(preg_match('/\d+/', $user))
+	$user = (int) $user;
+else {
+	echo '<h1 class="error">Invalid User ID</h1>';
+	die();
 }
+
+$ad = new AddictDatabase();
+
 
 /*
 // This page will go into a completley different page, called view
@@ -50,55 +43,50 @@ if($facebook->api_client->users_isAppUser($_GET['user']) && isset($_GET['user'])
 }
 */
 
-
-$user = $_GET['user'];
-if(count($users) > 1)
-	die("Too many arguments");
-
-try {
-	$facebook->api_client->users_getInfo($user, "name");
-} catch (Exception $ex) {
-	die("invalid user id");
+$list = $_GET['list'];
+if($list == 'afi') {
+	$list = 'afi';
+	$tabvalue = 8;
+	$total = '100';
+	$list_movies = $ad->getAFIMovies();
+} 
+else {
+	$list = 'imdb';
+	$total = '250';
+	$tabvalue = 9;
+	$list_movies = $ad->getIMDBMovies();
 }
 
-//Retrieve data from MySQL, first connecting to the databse
-$con = mysql_connect("localhost",$dbuser,$dbpass);
-if (!$con) {
-  die('Could not connect: ' . mysql_error());
-}
-$db_selected = mysql_select_db($db, $con);
-if (!$db_selected) {
-    die ('Can\'t use ' . mysql_error());
-}
 
-$imdbfilms = userfilms($db, $con, $user, 'imdb');
-$afifilms = userfilms($db, $con, $user, 'imdb');
-$percent = userdata($db, $con, $user);
-$percent = $percent["percent"];
+$user_info = $ad->getUser($user);
+$user_movies = $ad->getUserMovies($user);
+$user_count = $user_info['count'];
+$total_count = 274;
+$percent = $user_info['percent'];
+
+//Determine what message to show
+
 
 //Create the pageData object
 $pageData = (object)(array()); 
 
 // Save Information
 $pageData->css = $cssurl;
-$pageData->tabs = tabs(2, $appurl);
-$pageData->userid = $user;
+$pageData->tabs = $tabvalue;
+$pageData->appurl =  $appurl;
+$pageData->msg = $msg;
+$pageData->userid = (int) $user;
 $pageData->percent = $percent;
-$pageData->films = $imdbfilms;
+$pageData->movielist = $list;
+$pageData->movies = $list_movies;
+$pageData->seen_movies = $user_movies;
+$pageData->moviecount = $user_count;
+$pageData->totalcount = $total_count;
 
 // Display the Page
 ob_start(); 
-require("layout_view.php"); 
+require_once("templates/layout_view.php"); 
 ob_end_flush();
 
-
-// Generate the page fbml
-function generateFbml($percent, $user){
-	$fbml = '<div><h1 style="text-align: center; font-size: 32px;">'.$percent.'%<h3 style="text-align: center;">addicited to film</h3><a href="http://apps.facebook.com/'.$appurl.'?user='.$user.'" style="text-align: center; display: block; margin: 5px;">See <fb:name uid="'.$user.'" useyou=false capitalize="true" possessive="true" /> list</a>
-	<a href="http://apps.facebook.com/'.$appurl.'" style="text-align: center; display: block; margin: 5px;">How addicted are you?</a>';
-	return $fbml;
-}
-
-mysql_close();
 
 ?>

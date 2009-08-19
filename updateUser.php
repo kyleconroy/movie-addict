@@ -1,54 +1,38 @@
 <?php
 
 // Get the configuration variables
-require_once('config.php');
-require('libfunction.php');
+require_once 'addict_database.php';
+require_once 'config.php';
 
-$con = mysql_connect("localhost",$dbuser,$dbpass);
+$ad = new AddictDatabase();
 
-if (!$con) {
-  die('Could not connect: ' . mysql_error());
-}
-
-$db_selected = mysql_select_db($db, $con);
-
-if (!$db_selected) {
-    die ('Can\'t use ' . mysql_error());
-}
-
-$userid = $_POST['userid'];
-$checked = $_POST['film'];
+$user_id = $_POST['userid'];
+$on_movies = $_POST['film'];
+$checked_movies = array();
 $list = $_POST['list'];
+$previous_movies = $ad->getUserMovies($user_id);
 
-// Get top 250 list
-$result = mysql_query("SELECT * FROM top250 WHERE $list IS NOT NULL ORDER BY $list ");
-	if(!$result) {
-	   		die ('Can\'t get top movies ' . mysql_error());
-	}
-
-$count = 0;	
-// update BOOL values
-while ($row = mysql_fetch_array($result)) {
-	$imdbid = $row["imdbid"];
-	if($checked["$imdbid"] == 'on') {
-		mysql_query("UPDATE users SET `$imdbid` = 1 WHERE userid = '$userid'") or
-			die ('Can\'t update '.$row["title"].' ' . mysql_error());
-		$count += 1;
-	} else {
-		mysql_query("UPDATE users SET `$imdbid` = 0 WHERE userid = '$userid'") or
-			die ('Can\'t update '.$row["title"].' ' . mysql_error());
-	}
+if($list == "imdb"){
+	$list_films = array_keys($ad->getIMDBMovies());
+} else {
+	$list_films = array_keys($ad->getAFIMovies());
 }
 
-// calculate percent
-$afifilms = userfilms($db, $con, $userid, 'afi');
-$imdbfilms = userfilms($db, $con, $userid, 'imdb');
-$percent = calculatepercent($imdbfilms, $afifilms);
+foreach($on_movies as $key => $value)
+	$checked_movies[] = (int) $key;
 
-mysql_query("UPDATE users SET percent = '$percent' WHERE userid = '$userid'") or
-		die ('Can\'t update percent ' . mysql_error());
+foreach($checked_movies as $movie_id){
+	if(!in_array($movie_id, $previous_movies))
+		$ad->addUserMovie($user_id, $movie_id);
+}
 
-mysql_close(); 
+foreach($previous_movies as $movie_id){
+	if(!is_null($checked_movies) && !in_array($movie_id, $checked_movies) && in_array($movie_id, $list_films))
+		$ad->deleteUserMovie($user_id, $movie_id);
+}
+
+$ad->updateUserMovieCount($user_id);
+
 
 echo '<fb:redirect url="http://apps.facebook.com/'.$appurl.'?msg=1" />';
 

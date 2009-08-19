@@ -1,133 +1,105 @@
-<?php 
+<?php
 
-require_once('config.php');
+require_once "netflix.php";
+require_once "scrape.php";
+require_once "addict_database.php";
+require_once "config.php";
 
-/** Update Everything **/
+//Title Change
+$dictionary = array(
+	'Il buono, il brutto, il cattivo.' => 'The Good, the Bad and the Ugly',
+	'Shichinin no samurai' => 'The Seven Samurai',
+	"C&#x27;era una volta il West" => 'Once Upon a Time in the West',
+	'Cidade de Deus' => 'City of God',
+	'L&#xE9;on' => 'The Professional',
+	'Le fabuleux destin d&#x27;Am&#xE9;lie Poulain' => 'Am&#xE9;lie',
+	'Das Leben der Anderen' => 'The Lives of Others',
+	'Sen to Chihiro no kamikakushi' => 'Spirited Away',
+	'El laberinto del fauno' => 'Pan\'s Labyrinth',
+	'Der Untergang' => 'Downfall',
+	'La vita &#xE8; bella' => 'Life Is Beautiful',
+	'Nuovo cinema Paradiso' => 'Cinema Paradiso',
+	'Ladri di biciclette' => 'The Bicycle Thief',
+	'Det sjunde inseglet' => 'The Seventh Seal',
+	'Per qualche dollaro in pi&#xF9;' => 'For a Few Dollars More',
+	'Smultronst&#xE4;llet' => 'Wild Strawberries',
+	'Les diaboliques' => 'Diabolique',
+	'Le notti di Cabiria' => 'Nights of Cabiria',
+	'Le salaire de la peur' => 'The Wages of Fear',
+	'Amores perros' => 'Love\'s a Bitch',
+	'L&#xE5;t den r&#xE4;tte komma in' => 'Let the Right One In',
+	'Hotaru no haka' => 'Grave of the Fireflies',
+	'La battaglia di Algeri' => 'The Battle of Algiers',
+	'Mou gaan dou' => 'Infernal Affairs',
+	'Nosferatu, eine Symphonie des Grauens' => 'Nosferatu the Vampire',
+	'Wo hu cang long' => 'Crouching Tiger, Hidden Dragon',
+	'Le scaphandre et le papillon' => 'The Diving Bell and the Butterfly',
+	'Mononoke-hime' => 'Princess Mononoke',
+);
 
-$top = top250();
-updateTop250($top, $dbuser, $dbpass, $db);
-//updateUsers($top, $dbuser, $dbpass, $db);
-
-function top250()
-{
-	$url = 'http://www.imdb.com/chart/top';
-	$ch = curl_init();
-	curl_setopt($ch, CURLOPT_URL, $url);
-	curl_setopt($ch, CURLOPT_FAILONERROR, 1);
-	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
-	curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-	$result = curl_exec($ch);
-	curl_close($ch); 
-	preg_match_all('/\/title\/\w+\/">[^<>]+/', $result, $match);
-	$match = $match[0];
-	return $match;
-}
+$ad = new AddictDatabase("brokenva_addicttest");
+$nf = new Netflix($netflixKey, $netflixSecret);
+$top250 = getIMDB250();
+updateTop250($top250);
 
 /** Update the top 250 table **/
-function updateTop250($top250, $dbuser, $dbpass, $db) {
-	$con = mysql_connect("localhost",$dbuser,$dbpass);
-	if (!$con) {
-	  die('Could not connect: ' . mysql_error());
-	}
-	$db_selected = mysql_select_db($db, $con);
-	if (!$db_selected) {
-	    die ('Can\'t use ' . mysql_error());
-	}
-	$counter = 1;
-	foreach ($top250 as $str) {
-		$imdbid = substr($str, 9, 7);
-		$title = substr($str, 19);
-		if(!mysql_query("UPDATE top250 SET imdb = $counter WHERE imdbid = \"$imdbid\"")) {
-	   		if (!mysql_query("INSERT INTO top250 (imdbid, title, imdb) VALUES (\"$imdbid\", \"$title\", '$counter')"))
-	   			die ('Can\'t insert into table ' . mysql_error());
+
+function updateTop250($top250) {
+	global $ad;
+	global $dictionary;
+	$current = $ad->getMovies();
+	$ad->resetIMDBRank();
+	$ad->resetNetflixInstant();
+	foreach ($top250 as $movie) {
+	    $nftitle = $movie['title'];
+		if (in_array($movie['id'], array_keys($current))) {
+	   		$ad->updateIMDBRank($movie['id'], $movie['imdb_rank']);
+	   		echo "Updated '" . $movie['title'] . "' to #" . $movie['imdb_rank'] . "<br>";
+	 	} else {
+			$ad->addMovie($movie['id'], $movie['title'], $movie['imdb_rank']);
+			echo "Added '" . $movie['title'] . "' as #" . $movie['imdb_rank'] . "<br>";
 	 	}
-		$counter++;
-	}
-	mysql_close();
-}
-
-/** Add any movies that weren't previously on the list to the user table **/
-function updateUsers($top250, $dbuser, $dbpass, $db) {
-	$con = mysql_connect("localhost",$dbuser,$dbpass);
-	if (!$con) {
-	  die('Could not connect: ' . mysql_error());
-	}
-	$db_selected = mysql_select_db($db, $con);
-	if (!$db_selected) {
-	    die ('Can\'t use ' . mysql_error());
-	}
-	$result = mysql_query("SELECT * FROM users WHERE userid = 0");
-	$row = mysql_fetch_array($result, MYSQL_ASSOC);
-	foreach ($top250 as $str) {
-		$imdbid = substr($str, 9, 7);
-		if($row[$imdbid] == NULL) {
-   			if(!mysql_query("ALTER TABLE users ADD `$imdbid` BOOL")) {
-    			die ('Can\'t alter table ' . mysql_error());
-			}
-			if(!mysql_query("ALTER TABLE users MODIFY `$imdbid` BOOL NOT NULL")) {
-    			die ('Can\'t make not null ' . mysql_error());
-			}
-			if(!mysql_query("ALTER TABLE users ALTER `$imdbid` SET DEFAULT 0;")) {
-    			die ('Can\'t set default ' . mysql_error());
-			}
+	 	if (in_array(utf8_decode($movie['title']), array_keys($dictionary))) {
+	 		$ad->updateMovieTitle($movie['id'], $dictionary[$movie['title']]);
+	 		$nftitle = $dictionary[$movie['title']];
+	 		echo "Updated " . $movie['title'] . " to " . $dictionary[$movie['title']] . "<br>";
 	 	}
+        if($xml = netflixLookup($nftitle)) {
+            if(canWatchInstant($xml)) {
+                $ad->updateNetflixInstant($movie['id'], true);
+                echo "You can now watch $nftitle instantly! <br>";
+            }
+            if($nfid = netflixId($xml))
+                $ad->updateNetflixId($movie['id'], $nfid);
+        }
+        usleep(300);
 	}
-	mysql_close(); 
 }
 
-/* An associative array of the Top 250 Films */
-function top250array() {
-	
-	require('config.php');
-	
-	$con = mysql_connect("localhost",$dbuser,$dbpass);
-	if (!$con) {
-	  die('Could not connect: ' . mysql_error());
-	}
-	$db_selected = mysql_select_db($db, $con);
-	if (!$db_selected) {
-	    die ('Can\'t use ' . mysql_error());
-	}
-	$result = mysql_query("SELECT * FROM top250");
-	if(!$result) {
-	   		die ('Can\'t get top movies ' . mysql_error());
-	}
-	
-	$films = array();
-	while ($row = mysql_fetch_array($result)){
-		$films[$row[0]] = array("title"=>$row[1], "count"=>0);
-	}
-	return $films;
+
+function netflixId($xml){
+    $url = array_shift($xml->xpath("/catalog_titles/catalog_title[1]"))->id;
+    if(preg_match('/\d+/', $url, $matches))
+        return $matches[0];
+    return false;
 }
 
-function filmCount() {
-
-	require('config.php');
-	
-	$con = mysql_connect("localhost",$dbuser,$dbpass);
-	if (!$con) {
-	  die('Could not connect: ' . mysql_error());
-	}
-	$db_selected = mysql_select_db($db, $con);
-	if (!$db_selected) {
-	    die ('Can\'t use ' . mysql_error());
-	}
-	$result = mysql_query("SELECT * FROM users");
-	if(!$result) {
-	   		die ('Can\'t get top movies ' . mysql_error());
-	}
-	
-	$films = top250array();
-	
-	while ($row = mysql_fetch_array($result, MYSQL_ASSOC)){
-		unset($row['userid']);
-		unset($row['percent']);
-		foreach($row as $key=>$value){
-			$films[$key]["count"] = $films[$key]["count"] + $value;
-		}
-	}
-	mysql_close();
-	return $films;
+function canWatchInstant($xml){
+    $format = array_shift($xml->xpath("/catalog_titles/catalog_title[1]/
+                link[@title='formats']/delivery_formats/availability/category[@term='instant']"));
+    if($format)
+        return true;
+    return false; 
 }
 
+function netflixLookup($title){
+    global $nf;
+    global $netflixUrl;
+    $params = array("term" => $title, "expand"=>"formats");
+    $result = $nf->request($netflixUrl, "GET", $params);
+    if(!$result)
+        return false;
+    return simplexml_load_string($result);
+}
+
+?>

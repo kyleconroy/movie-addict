@@ -1,6 +1,8 @@
+<?php require_once 'layout_tabs.php'; ?>
+
 <link rel="stylesheet" type="text/css" media="screen" href="<?php echo $pageData->css; ?>" />
 
-<?php echo $pageData->tabs; ?>
+<?php echo tabs($pageData->tabs); ?>
 	  
 <h1 class="settings">
 	<fb:name uid="<?php echo $pageData->userid; ?>" useyou="false" capitalize="true" /> is <?php echo $pageData->percent; ?>% addicted to film.
@@ -26,16 +28,23 @@
 	<tbody>
 	<?php 
 		$count = 0;
-		foreach($pageData->films as $film) { 
+		foreach($pageData->movies as $movie) { 
 			if($count++ % 2 == 0)
 				$pageData->row = "even";
 			else 
 				$pageData->row = "odd"; 
-	?>
+			if(in_array($movie['id'], $pageData->seen_movies))
+				$checked = "checked=\"checked\"";
+			else
+				$checked = "";
+	?>		
 		<tr class="<?php echo $pageData->row; ?>">
-			<td class="count"><?php echo $film[$pageData->movielist]; ?></td>
-			<td class="seenit"><input type="checkbox" <?php echo $film["checked"]; ?> name="film[<?php echo $film["id"]; ?>]"></td>
-			<td class="mtitle"><?php echo $film["link"]; ?></td>
+			<td class="count"><?php echo $count ?></td>
+			<td class="seenit"><input type="checkbox" <?php echo $checked; ?> name="film[<?php echo $movie['id']; ?>]"></td>
+			<td class="mtitle"><?php echo "<a href=\"http://www.imdb.com/title/tt" . $movie['id'] . "\"> " . $movie['title'] ."</a>"; 
+			if($movie['instant']){ ?>
+			<a class="netflix" style="color:#B9090B;float:right" href="http://www.netflix.com/WiPlayer?movieid=<?php echo $movie['netflix_id'] ?>">Watch Now on Netflix</a>
+			<?php } ?></td>
 		</tr>
 	<?php } ?>
 	</tbody>
@@ -44,3 +53,4 @@
 	<input type="hidden" name="list" value="<?php echo $pageData->movielist; ?>"  />
 	<input class="inputsubmit submit" type="submit" value="Update Movies" />
 </form>
+<script src="http://jsapi.netflix.com/us/api/js/api.js"></script>

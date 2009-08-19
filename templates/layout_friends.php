@@ -1,6 +1,7 @@
+<?php require_once 'layout_tabs.php'; ?>
 <link rel="stylesheet" type="text/css" media="screen" href="<?php echo $pageData->css; ?>" />
 
-<?php echo $pageData->tabs; ?>
+<?php echo tabs($pageData->tabs); ?>
 	  
 <h1 class="settings">
 	<fb:name uid="<?php echo $pageData->userid; ?>" useyou="false" capitalize="true" possessive="true"/> Friends
@@ -28,17 +29,18 @@
 				$pageData->row = "odd"; 
 		?>
 		<tr class="<?php echo $pageData->row; ?>">
-			<td class="check"><input type="checkbox" name="user[<?php echo $friend["userid"]; ?>]"></td>
-			<td class="img"><fb:profile-pic uid="<?php echo $friend["userid"] ?>" linked="true" size="q" /></td>
-			<td class="name"><fb:name uid="<?php echo $friend["userid"] ?>" capitalize="true" /></td>
+			<td class="check"><input type="checkbox" name="user[<?php echo $friend["id"]; ?>]"></td>
+			<td class="img"><fb:profile-pic uid="<?php echo $friend["id"] ?>" linked="true" size="q" /></td>
+			<td class="name"><fb:name uid="<?php echo $friend["id"] ?>" capitalize="true" /></td>
 			<td class="percent"><?php echo $friend["percent"] ?>%</td>
-			<td class="list"><a href="http://apps.facebook.com/<?php echo $pageData->appurl ?>view.php?user=<?php echo $friend["userid"] ?>">
-				See <fb:name uid="<?php echo $friend["userid"] ?>" capitalize="true" possessive="true"/> list</a>
+			<td class="list"><a href="http://apps.facebook.com/<?php echo $pageData->appurl ?>view.php?user=<?php echo $friend["id"] ?>">
+				See <fb:name uid="<?php echo $friend["id"] ?>" capitalize="true" possessive="true"/> list</a>
 			</td>
 		</tr>
 		
 		<?php }	?>
 		</tbody>
 	</table>
+	<input type="hidden" name="user[<?php echo $facebook->user; ?>]" value="checked" />
 	<input class="inputsubmit submit" type="submit" value="Compare Lists" />
 </form>

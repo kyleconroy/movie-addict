@@ -27,6 +27,11 @@
 	width: 118px;
 }
 
+.netflix {
+    color: #B9090B;
+    float: right;
+}
+
 .fbml_add_profile_button td {
 	padding: 0px;
 }
@@ -119,3 +124,10 @@
 	float: right;
 	background: #6D84b4;
 }
+
+.status {
+    background-color:#FFF9D7;
+    border-color:#E2C822;
+    padding:10px;
+}
+
