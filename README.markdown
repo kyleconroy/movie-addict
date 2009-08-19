@@ -1,5 +1,5 @@
-## Movie Addict
-####for Facebook
+# Movie Addict
+## Movie Tracking for Facebook
 
 A dead-simple way to track the number of IMDB Top 250 (and AFI Top 100) 
 movies you have seen. You can also compare scores with your 
