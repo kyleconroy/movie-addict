@@ -17,6 +17,7 @@
 </fb:if-section-not-added>
 
 <form action="updateUser.php" method="POST">
+      <input class="inputsubmit submit" type="submit" value="Update Movies" />
 	<table class="table" cellpadding="0" cellspacing="1">
 	<thead>
 		<tr>

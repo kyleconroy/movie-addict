@@ -43,15 +43,6 @@ try {
 	$facebook->redirect($appcallbackurl);
 }
 
-/*
-// This page will go into a completley different page, called view
-//If a user is defined in the url, see if that user added the app
-$submit = true;
-if($facebook->api_client->users_isAppUser($_GET['user']) && isset($_GET['user'])) {
-	$user = $_GET['user'];
-	$submit = false;
-}
-*/
 
 $list = $_GET['list'];
 if($list == 'afi') {
